@@ -1,49 +1,18 @@
-# BLE Security Misconfiguration: Proof of Concept (PoC)
+# Win32 ASM Date Parser & Timer GUI (Vulnerability Case Study)
 
-This repository contains a Proof of Concept (PoC) demonstrating a common security misconfiguration in Bluetooth Low Energy (BLE) IoT devices. 
+This project is a native 32-bit Windows application written entirely in **x86 Assembly (MASM32)**. It directly interacts with the Win32 API to create a Graphical User Interface (GUI), handle system timers, and perform manual string parsing.
 
-The project highlights an **"Insecure by Design"** flaw where a device is mechanically and software-wise fully functional, but lacks proper authorization on the communication layer.
+Currently, this project serves as a **Security & Vulnerability Case Study**, demonstrating how unsafe manual memory management and string operations in low-level languages can lead to memory corruption vulnerabilities.
 
-## 📁 Repository Structure
-* `/BLE_security_IoT` - PlatformIO project containing the C++ code for the vulnerable BLE server (target).
-* `/attacker_script` - Python automated scanning and exploitation script (attacker).
+## 🛠️ Key Technical Features
+* **Pure x86 Assembly:** Built using Microsoft Macro Assembler (MASM32).
+* **Win32 API Integration:** Direct calls to Windows API for GUI creation, dialog boxes, and message loop handling.
+* **Manual String Parsing:** Custom pointer arithmetic to parse user-input dates (identifying '.' delimiters) without relying on high-level libraries.
+* **Hardware/System Timers:** Implementation of Windows timers to manage real-time events.
 
-## 🛠️ Hardware Setup
-* **Microcontroller:** XIAO ESP32-C3
-* **Actuator:** Adafruit NeoPixel RGB LED (Pin 2)
+## ⚠️ Security Analysis: Buffer Overflow (Vulnerable by Design)
+This application intentionally retains an **Out-of-Bounds Write / Buffer Overflow** vulnerability for educational purposes. 
 
-## 🚨 The Vulnerability
-The vulnerability lies in the BLE server configuration (`src/diode_faulty_ble.cpp`). The GATT characteristic responsible for controlling the LED state is created with `READ` and `WRITE` properties, but **without any encryption or authentication flags** (missing `WRITE_ENC`). 
-
-This allows any unauthenticated central device to connect and write payloads to the characteristic, gaining full control over the actuator.
-
-## 🐍 The Exploit (Python Auto-Auditor)
-
-The `ble_hacking.py` script acts as an automated Black-Box testing tool. It uses the `bleak` library to:
-1. Scan the environment for the vulnerable device name.
-2. Establish a connection without pairing.
-3. Perform GATT Discovery to map services and find open "write" characteristics.
-4. Inject unauthorized hexadecimal payloads to force a state change.
-5. Generate a brief security audit report.
-
-## 🐧 Linux Kernel & Driver Analysis (Bash Framework)
-To elevate the testing process, I developed a **Bash wrapper script** (`run_audit.sh`) that integrates the Python exploit with Linux's low-level components. 
-
-Before launching the attack, the script utilizes `btmon` to hook into the **BlueZ Bluetooth stack within the Linux Kernel**. It captures raw HCI (Host Controller Interface) traffic flowing between the OS platform components and the hardware Bluetooth driver. The resulting capture (`.snoop` file) allows for deep-dive packet analysis in Wireshark, providing a complete picture of the exploit at the OS-driver interworking level.
-
-> **Testing Environment Note:** The `run_audit.sh` wrapper relies on `btmon` to capture raw HCI traffic from the BlueZ stack. Execution of this specific kernel-level hooking requires a native Linux host or a dedicated USB Bluetooth adapter passed through to a Virtual Machine. Default WSL2 environments or VMs utilizing built-in PCIe combo-cards may not support hardware-level Bluetooth bridging.
-
-## Troubleshooting / Known Issues
-Note: Running this on a MacBook with Ubuntu may result in hci_uart baudrate errors. A custom kernel module patch (e.g., from macbook12-bluetooth-driver) is required to bypass ACPI and UART limitations.
-## 🚀 How to run the PoC
-
-**1. Prepare the Target (ESP32-C3):**
-Open the `/BLE_security_IoT` folder in VS Code with the PlatformIO extension installed. Build and upload the project to your XIAO board.
-
-**2. Run the Automated Audit (Linux/Bash):**
-To run the full audit with kernel-level traffic capture, use the Bash wrapper:
-```bash
-cd attacker_script
-chmod +x run_audit.sh
-./run_audit.sh
-
+User input is collected from a text dialog and stored in a fixed-size buffer:
+```assembly
+userDate db 20 dup(0)
