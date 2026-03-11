@@ -3,11 +3,9 @@
 .model flat, stdcall      ; 32 bit memory model
 option casemap :none      ; case sensitive
 
+; Wczytanie wszystkich standardowych bibliotek Win32 API
 include \masm32\include\masm32rt.inc
 include \masm32\include\dialogs.inc
-include calender1.inc
-include simple2.inc
-include timer2.inc         ; local includes for this file
 
 atoi PROTO C :PTR BYTE
 includelib msvcrt.lib
@@ -16,12 +14,26 @@ dlgproc PROTO :DWORD,:DWORD,:DWORD,:DWORD
 calendarDlgProc  PROTO :DWORD,:DWORD,:DWORD,:DWORD
 GetTextDialog PROTO :DWORD,:DWORD,:DWORD
 
+; Makro do wyświetlania okna
+DisplayWindow MACRO handl, ShowStyle
+    invoke ShowWindow,handl, ShowStyle
+    invoke UpdateWindow,handl
+ENDM
+
 .data
 userDate db 20 dup(0)    ; Buffer for string (up to 19 chars + null terminator) - VULNERABLE TO BUFFER OVERFLOW
 
 .data?
-hInstance1 dd ?
-systemTime SYSTEMTIME <>
+hInstance   dd ?
+hInstance1  dd ?
+hInstance3  dd ?
+CommandLine dd ?
+hIcon3      dd ?
+hCursor     dd ?
+sWid        dd ?
+sHgt        dd ?
+hWnd        dd ?
+systemTime  SYSTEMTIME <>
 
 .code
 ; «««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««
@@ -47,9 +59,7 @@ main proc
     LOCAL Wwd:DWORD,Wht:DWORD,Wtx:DWORD,Wty:DWORD
     STRING szClassName,"Timer_Demo_Class"
     
-    ; --------------------------------------------
     ; register class name for CreateWindowEx call
-    ; --------------------------------------------
     invoke RegisterWinClass,ADDR WndProc,ADDR szClassName, hIcon3,hCursor,COLOR_BTNFACE+1
     
     mov Wwd, 350          ; window width
@@ -68,9 +78,6 @@ main proc
         hInstance3,NULL
     mov hWnd,eax
     
-    ; ---------------------------
-    ; macros for unchanging code
-    ; ---------------------------
     DisplayWindow hWnd,SW_SHOWNORMAL
     call MsgLoop
 
@@ -99,7 +106,7 @@ RegisterWinClass endp
 ; «««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««««
 MsgLoop proc
     LOCAL msg:MSG
-    jmp InLoop                              ; not needed but for "purists"
+    jmp InLoop                              
 StartLoop:
     invoke TranslateMessage, ADDR msg
     invoke DispatchMessage,  ADDR msg
@@ -117,14 +124,10 @@ WndProc proc hWin:DWORD,uMsg:DWORD,wParam:DWORD,lParam:DWORD
     
     Switch uMsg
         Case WM_CREATE
-            ; ---------------------------------------------------
             ; set the timer with a 1000 MS (1 second) update rate
-            ; ---------------------------------------------------
             invoke SetTimer,hWin,222,1000,NULL
 
-            ; ---------------------------------------------------
             ; button creation
-            ; ---------------------------------------------------
             invoke CreateWindowEx, 0, chr$("BUTTON"), chr$("Calendar"), WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON, \
                 10, 10, 70, 24, hWin, 2000, hInstance, NULL
             invoke CreateWindowEx, 0, chr$("BUTTON"), chr$("Option"), WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON, \
@@ -137,30 +140,19 @@ WndProc proc hWin:DWORD,uMsg:DWORD,wParam:DWORD,lParam:DWORD
             and eax, 0FFFFh     ; Extract ID from LOWORD(wParam)
             
             .if eax == 2000
-                ; Calendar clicked - launch custom dialog/window
                 call popinfo
             .elseif eax == 2001
-                ; Option clicked
                 invoke MessageBox, hWin, chr$("Option clicked"), chr$("Info"), MB_OK
             .elseif eax == IDCANCEL
-                ; Exit clicked
                 invoke PostMessage, hWin, WM_CLOSE, 0, 0
             .endif
             
         Case WM_TIMER
-            ; -------------------------------
-            ; receive the timer message every
-            ; second, retrieve the local time
-            ; and display it on the title bar
-            ; -------------------------------
             invoke GetTimeFormat,LOCALE_USER_DEFAULT,NULL,NULL,NULL,ADDR buffer1,260
             fn SetWindowText,hWnd,ADDR buffer1
             return 0
             
         Case WM_CLOSE
-            ; -------------------------
-            ; destroy the timer on exit
-            ; -------------------------
             invoke KillTimer,hWin,222
             
         Case WM_DESTROY
@@ -184,7 +176,7 @@ TopXY endp
 calendarMain proc
     LOCAL ptxt  :DWORD
     LOCAL hIcon :DWORD
-    LOCAL liczba :DWORD    ; Store atoi result here
+    LOCAL liczba :DWORD    
     
     invoke InitCommonControls
     mov hIcon, rv(LoadIcon,hInstance1 ,10)
@@ -208,9 +200,7 @@ GetTextDialog proc dgltxt:DWORD,grptxt:DWORD,iconID:DWORD
     LOCAL parg  :DWORD
     lea eax, arg1
     mov parg, eax
-    ; ---------------------------------------
     ; load the array with the stack arguments
-    ; ---------------------------------------
     mov ecx, dgltxt
     mov [eax], ecx
     mov ecx, grptxt
@@ -269,7 +259,6 @@ calendarDlgProc proc hWin:DWORD,uMsg:DWORD,wParam:DWORD,lParam:DWORD
         mov hMonthCal, eax
         
         ; Parse userDate, assuming format "dd.mm.yyyy"
-        ; Assuming: userDate = "01.06.2025", 0
         
         ; Parse day
         invoke atoi, addr userDate
@@ -340,9 +329,7 @@ dlgproc proc hWin:DWORD,uMsg:DWORD,wParam:DWORD,lParam:DWORD
     LOCAL hIcon :DWORD
     switch uMsg
       case WM_INITDIALOG
-        ; -------------------------------------------------
         ; get the arguments from the array passed in lParam
-        ; -------------------------------------------------
         push esi
         mov esi, lParam
         fn SetWindowText,hWin,[esi]                         ; title text address
@@ -395,7 +382,7 @@ popinfo proc
     call MessageBox
     push 0 
     
-    call calendarMain; // call calendar
+    call calendarMain
     ret
 popinfo endp
 ; #########################################################################
