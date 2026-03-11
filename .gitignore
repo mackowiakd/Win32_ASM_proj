@@ -1,0 +1,30 @@
+# Visual Studio
+.vs/
+*.user
+*.aps
+*.ncb
+*.suo
+*.tlog
+*.log
+*.idb
+*.ilk
+*.pdb
+*.obj
+*.recipe
+
+# Build directories
+bin/
+obj/
+x64/
+x86/
+Debug/
+Release/
+
+# Executables
+*.exe
+*.dll
+*.lib
+
+# Inne pliki tymczasowe
+*.bak
+*.tmp
