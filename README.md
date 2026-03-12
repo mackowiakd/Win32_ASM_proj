@@ -22,3 +22,12 @@ This project is a **Vulnerability Case Study**. It intentionally retains an **Ou
 User input is stored in a fixed-size buffer:
 ```assembly
 userDate db 20 dup(0)
+```
+
+## How to Run
+Ensure main.exe and Calculator.exe (from the win_api repo) are in the same directory.
+
+Run main.exe.
+
+Click the Calculator button to spawn the C-based sub-process.
+
