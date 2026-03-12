@@ -27,8 +27,14 @@ ENDM
 
 .data
 userDate db 20 dup(0)    ; Buffer for string (up to 19 chars + null terminator) - VULNERABLE TO BUFFER OVERFLOW
+szCalcPath  db "Calculator.exe", 0   ; calc pg in C
 
 .data?
+
+; Struktury wymagane przez CreateProcess do zarządzania nowym procesem
+startInfo   STARTUPINFO <?>
+procInfo    PROCESS_INFORMATION <?>
+
 hInstance   dd ?
 hInstance1  dd ?
 hInstance3  dd ?
@@ -67,8 +73,8 @@ main proc
     ; register class name for CreateWindowEx call
     invoke RegisterWinClass,ADDR WndProc,ADDR szClassName, hIcon3,hCursor,COLOR_BTNFACE+1
     
-    mov Wwd, 350          ; window width
-    mov Wht, 250
+    mov Wwd, 450          ; window width
+    mov Wht, 350
     invoke TopXY,Wwd,sWid
     mov Wtx, eax
     invoke TopXY,Wht,sHgt
@@ -133,18 +139,38 @@ WndProc proc hWin:DWORD,uMsg:DWORD,wParam:DWORD,lParam:DWORD
             invoke SetTimer,hWin,222,1000,NULL
 
             ; button creation
+            invoke CreateWindowEx, 0, chr$("BUTTON"), chr$("Calculator"), WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON, \
+                30, 40, 70, 24, hWin, 2002, hInstance, NULL ; Nowy ID: 2002
             invoke CreateWindowEx, 0, chr$("BUTTON"), chr$("Calendar"), WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON, \
-                10, 10, 70, 24, hWin, 2000, hInstance, NULL
+                110, 40, 70, 24, hWin, 2000, hInstance, NULL
             invoke CreateWindowEx, 0, chr$("BUTTON"), chr$("Option"), WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON, \
-                90, 10, 70, 24, hWin, 2001, hInstance, NULL
+                190, 40, 70, 24, hWin, 2001, hInstance, NULL
             invoke CreateWindowEx, 0, chr$("BUTTON"), chr$("Exit"), WS_CHILD or WS_VISIBLE or BS_PUSHBUTTON, \
-                170, 10, 70, 24, hWin, IDCANCEL, hInstance, NULL
+                270, 40, 70, 24, hWin, IDCANCEL, hInstance, NULL
 
         Case WM_COMMAND
             mov eax, wParam
             and eax, 0FFFFh     ; Extract ID from LOWORD(wParam)
-            
-            .if eax == 2000
+
+            .if eax == 2002
+                ; --- IMPLEMENTACJA PROCESS MANAGEMENT ---
+                ; 1. Przygotowanie struktury STARTUPINFO (wymagane przez system)
+                invoke GetStartupInfo, addr startInfo
+                
+                ; 2. Wywołanie CreateProcess - odpowiednik Linuxowego fork+exec
+                invoke CreateProcess, NULL, addr szCalcPath, NULL, NULL, FALSE, \
+                                     NORMAL_PRIORITY_CLASS, NULL, NULL, \
+                                     addr startInfo, addr procInfo
+                
+                .if eax == 0
+                    invoke MessageBox, hWin, chr$("Failed to launch Calculator.exe"), chr$("Process Error"), MB_ICONERROR
+                .else
+                    ; 3. Dobra praktyka: zamykamy uchwyty, jeśli nie zamierzamy kontrolować procesu
+                    invoke CloseHandle, procInfo.hProcess
+                    invoke CloseHandle, procInfo.hThread
+                .endif
+                ; ---------------------------------------
+            .elseif eax == 2000
                 call popinfo
             .elseif eax == 2001
                 invoke MessageBox, hWin, chr$("Option clicked"), chr$("Info"), MB_OK
