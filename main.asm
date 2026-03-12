@@ -10,9 +10,14 @@ include \masm32\include\dialogs.inc
 atoi PROTO C :PTR BYTE
 includelib msvcrt.lib
 
-dlgproc PROTO :DWORD,:DWORD,:DWORD,:DWORD
+; --- PROTOTYPY FUNKCJI (Wymagane przez kompilator dla instrukcji invoke) ---
+WndProc          PROTO :DWORD,:DWORD,:DWORD,:DWORD
+TopXY            PROTO :DWORD,:DWORD
+RegisterWinClass PROTO :DWORD,:DWORD,:DWORD,:DWORD,:DWORD
+MsgLoop          PROTO
+dlgproc          PROTO :DWORD,:DWORD,:DWORD,:DWORD
 calendarDlgProc  PROTO :DWORD,:DWORD,:DWORD,:DWORD
-GetTextDialog PROTO :DWORD,:DWORD,:DWORD
+GetTextDialog    PROTO :DWORD,:DWORD,:DWORD
 
 ; Makro do wyświetlania okna
 DisplayWindow MACRO handl, ShowStyle
