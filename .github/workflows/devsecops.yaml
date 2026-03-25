@@ -1,0 +1,27 @@
+name: DevSecOps ASM Pipeline
+
+on:
+  push:
+    branches: [ main ] # Skrypt uruchomi się przy każdym pushu na gałąź main
+
+jobs:
+  security-fuzzing:
+    runs-on: windows-latest # Używamy maszyny z Windowsem, bo to Win32 API
+
+    steps:
+    - name: Pobranie kodu repozytorium
+      uses: actions/checkout@v3
+
+    - name: Konfiguracja środowiska Python (do wirtualnego klikania)
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Instalacja biblioteki pywinauto
+      run: pip install pywinauto
+
+    # Uwaga: Instalacja pełnego środowiska MASM32 na serwerach GitHuba jest trudna (wymaga klikania w instalatorze).
+    # Dlatego w tym kroku zakładamy, że plik main.exe jest już zbudowany, lub używamy Twojego gotowego pliku .exe.
+    
+    - name: Test Fuzzingowy (Wstrzyknięcie Buffer Overflow)
+      run: python test_overflow.py
