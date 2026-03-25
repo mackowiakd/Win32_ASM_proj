@@ -23,7 +23,15 @@ User input is stored in a fixed-size buffer:
 ```assembly
 userDate db 20 dup(0)
 ```
+### 🤖 Automated Security Testing & CI/CD (DevSecOps)
+To demonstrate modern QA and DevSecOps practices, this repository is integrated with a **GitHub Actions CI/CD pipeline**. 
 
+Upon every push to the `main` branch, an automated workflow is triggered:
+1. A Windows virtual machine is provisioned.
+2. An automated **Python Fuzzing Script** (`test_overflow.py` using `pywinauto`) is launched.
+3. The script acts as a virtual tester: it navigates the Win32 GUI, locates the target input field, and injects a malicious oversized payload (100 bytes).
+4. The pipeline automatically detects the resulting application crash (Segmentation Fault), proving the vulnerability and demonstrating automated GUI testing capabilities.
+   
 ## How to Run
 Ensure main.exe and Calculator.exe (from the win_api repo) are in the same directory.
 
